@@ -1,7 +1,9 @@
 package com.lu.coffeecompanion;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
@@ -12,15 +14,20 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.bumptech.glide.Glide;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
+
 import com.lu.coffeecompanion.databinding.ActivityCheckoutBinding;
-import com.lu.coffeecompanion.databinding.ItemCartBinding;
 import com.lu.coffeecompanion.databinding.DialogGcashQrBinding;
+import com.lu.coffeecompanion.databinding.ItemCartBinding;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +45,11 @@ public class CheckoutActivity extends AppCompatActivity {
     final double[] totalPrice = {0.0};
     private String selectedPaymentMethod = "";
     private List<Map<String, Object>> cartItems = new ArrayList<>();
+
+    // image proof
+    private Uri proofImageUri = null;
+    private boolean hasPaidWithGcash = false;
+    private boolean isFirstTimeBuyer = true;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,19 +81,36 @@ public class CheckoutActivity extends AppCompatActivity {
         Intent getIntent = getIntent();
         String addressDocId = getIntent.getStringExtra("documentId");
 
+        // Check if user has completed orders
+        checkIfFirstTimeBuyer();
+
         fetchAddress(addressDocId);
         fetchCartOptimized();
+
+        // default hide proof container initially
+        binding.proofContainer.setVisibility(View.GONE);
 
         // Payment method selection
         binding.radioGroupPayment.setOnCheckedChangeListener((group, checkedId) -> {
             if (checkedId == R.id.radioGcash) {
                 selectedPaymentMethod = "GCash";
+                // Show QR dialog when GCash is selected
+                showGcashQRDialog(addressDocId);
             } else if (checkedId == R.id.radioCod) {
                 selectedPaymentMethod = "Cash on Delivery";
+                binding.proofContainer.setVisibility(View.GONE);
+                hasPaidWithGcash = false;
             }
         });
 
         binding.back.setOnClickListener(v -> finish());
+
+        // Choose image
+        binding.btnUploadProof.setOnClickListener(v -> {
+            Intent pick = new Intent(Intent.ACTION_PICK);
+            pick.setType("image/*");
+            startActivityForResult(pick, 200);
+        });
 
         binding.placeOrder.setOnClickListener(v -> {
             if (selectedPaymentMethod.isEmpty()) {
@@ -90,42 +119,108 @@ public class CheckoutActivity extends AppCompatActivity {
             }
 
             if (selectedPaymentMethod.equals("GCash")) {
-                showGcashQRDialog(addressDocId);
-            } else {
-                checkout(addressDocId, selectedPaymentMethod);
+                if (!hasPaidWithGcash) {
+                    Toast.makeText(this, "Please complete GCash payment first", Toast.LENGTH_SHORT).show();
+                    showGcashQRDialog(addressDocId);
+                    return;
+                }
+
+                if (proofImageUri == null) {
+                    Toast.makeText(this, "Please upload proof of payment", Toast.LENGTH_SHORT).show();
+                    return;
+                }
             }
+
+            checkout(addressDocId, selectedPaymentMethod);
         });
+    }
+
+    private void checkIfFirstTimeBuyer() {
+        db.collection("orders")
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    // First time buyer lang kung walang anumang orders pa
+                    // (hindi lang completed, kahit pending pa lang)
+                    isFirstTimeBuyer = querySnapshot.isEmpty();
+                    updatePaymentMethodUI();
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("CheckFirstBuyer", "Error: " + e.getMessage());
+                    isFirstTimeBuyer = true;
+                    updatePaymentMethodUI();
+                });
+    }
+
+    private void updatePaymentMethodUI() {
+        if (isFirstTimeBuyer) {
+            // First time buyer - disable COD
+            binding.radioCod.setEnabled(false);
+            binding.radioCod.setAlpha(0.5f);
+            binding.radioGcash.setChecked(true);
+            binding.radioGcash.callOnClick();
+        } else {
+            // Returning customer - enable both
+            binding.radioCod.setEnabled(true);
+            binding.radioCod.setAlpha(1.0f);
+        }
     }
 
     private void showGcashQRDialog(String addressDocId) {
         DialogGcashQrBinding qrBinding = DialogGcashQrBinding.inflate(getLayoutInflater());
 
-        // Load QR Code image (⚠️ Replace with your actual QR code image URL)
+        // Load QR Code image (replace with your actual QR code image URL)
         Glide.with(this)
                 .load("https://i.imgur.com/YourQRCodeImage.png")
                 .placeholder(R.drawable.gcash_qr_placeholder)
                 .error(R.drawable.gcash_qr_placeholder)
                 .into(qrBinding.qrCodeImage);
 
-        // Create and show dialog
         androidx.appcompat.app.AlertDialog dialog = new MaterialAlertDialogBuilder(this)
                 .setView(qrBinding.getRoot())
-                .setCancelable(false)
+                .setCancelable(true)
+                .setTitle("GCash Payment")
+                .setMessage("Please scan the QR code to pay. After payment, click 'I've Paid' to upload proof.")
                 .create();
 
         dialog.show();
 
-        // Confirm payment button
+        // I've Paid button - pupunta sa upload proof of payment
         qrBinding.btnConfirmPayment.setOnClickListener(v -> {
+            hasPaidWithGcash = true;
             dialog.dismiss();
-            checkout(addressDocId, "GCash");
+
+            // I-show ang proof container
+            binding.proofContainer.setVisibility(View.VISIBLE);
+
+            // I-scroll down para makita ang proof container
+            scrollToProofContainer();
+
+            Toast.makeText(this, "Please upload your proof of payment", Toast.LENGTH_LONG).show();
         });
 
-        // Cancel button
-        qrBinding.btnCancel.setOnClickListener(v -> dialog.dismiss());
+        qrBinding.btnCancel.setOnClickListener(v -> {
+            // If user cancels, uncheck GCash radio button
+            if (!isFirstTimeBuyer) {
+                binding.radioCod.setChecked(true);
+            }
+            dialog.dismiss();
+        });
+    }
+
+    // New method to handle scrolling to proof container
+    private void scrollToProofContainer() {
+        binding.main.post(new Runnable() {
+            @Override
+            public void run() {
+                // Use scrollTo instead of smoothScrollTo for LinearLayout
+                binding.main.scrollTo(0, binding.proofContainer.getTop());
+            }
+        });
     }
 
     private void fetchAddress(String addressDocId) {
+        if (addressDocId == null) return;
         db.collection("users")
                 .document(userId)
                 .collection("addresses")
@@ -137,9 +232,7 @@ public class CheckoutActivity extends AppCompatActivity {
                         String address = task.getResult().getString("address");
                         String mobile = task.getResult().getString("mobile");
 
-                        binding.name.setText(name);
-                        binding.address.setText(address);
-                        binding.mobile.setText(mobile);
+                        // Display address info if needed
                     }
                 });
     }
@@ -242,46 +335,124 @@ public class CheckoutActivity extends AppCompatActivity {
                         checkoutDetails.put("orderTimestamp", Timestamp.now());
                         checkoutDetails.put("status", "Pending");
                         checkoutDetails.put("paymentMethod", paymentMethod);
+                        checkoutDetails.put("hasPaidWithGcash", hasPaidWithGcash);
                         pushCheckout(checkoutDetails);
+                    } else {
+                        binding.progressBar.setVisibility(View.GONE);
+                        binding.placeOrder.setEnabled(true);
+                        Toast.makeText(this, "Failed to fetch address", Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
     private void pushCheckout(Map<String, Object> checkoutDetails) {
+        // create empty order first to get docId
         db.collection("orders")
-                .add(checkoutDetails)
+                .add(new HashMap<>())
                 .addOnSuccessListener(documentReference -> {
                     String docId = documentReference.getId();
-
-                    // Add cart items to order
-                    for (Map<String, Object> item : cartItems) {
-                        db.collection("orders")
-                                .document(docId)
-                                .collection("items")
-                                .add(item);
-                    }
-
-                    // Clear cart
-                    db.collection("users")
-                            .document(userId)
-                            .collection("cart")
-                            .get()
-                            .addOnSuccessListener(snapshot -> {
-                                for (DocumentSnapshot doc : snapshot.getDocuments()) {
-                                    doc.getReference().delete();
-                                }
-                            });
-
-                    binding.progressBar.setVisibility(View.GONE);
-                    Intent intent = new Intent(getApplicationContext(), OrderSuccessActivity.class);
-                    intent.putExtra("orderId", docId);
-                    startActivity(intent);
-                    finish();
+                    uploadProofThenCheckout(docId, checkoutDetails);
                 })
                 .addOnFailureListener(e -> {
                     binding.progressBar.setVisibility(View.GONE);
                     binding.placeOrder.setEnabled(true);
                     Toast.makeText(this, "Failed to place order: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
+    }
+
+    private void uploadProofThenCheckout(String docId, Map<String, Object> checkoutDetails) {
+        if (proofImageUri == null) {
+            // No proof uploaded: just set checkout details
+            db.collection("orders").document(docId)
+                    .set(checkoutDetails)
+                    .addOnSuccessListener(unused -> finalizeCheckoutAndNotify(docId, checkoutDetails))
+                    .addOnFailureListener(e -> {
+                        binding.progressBar.setVisibility(View.GONE);
+                        binding.placeOrder.setEnabled(true);
+                        Toast.makeText(this, "Failed to save order: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    });
+            return;
+        }
+
+        try {
+            // Use user ID in the storage path for better security
+            StorageReference storageRef = FirebaseStorage.getInstance()
+                    .getReference("payment_proofs/" + userId + "/" + docId + ".jpg");
+
+            storageRef.putFile(proofImageUri)
+                    .addOnSuccessListener((UploadTask.TaskSnapshot taskSnapshot) ->
+                            storageRef.getDownloadUrl().addOnSuccessListener((OnSuccessListener<Uri>) uri -> {
+                                checkoutDetails.put("proofImageUrl", uri.toString());
+
+                                db.collection("orders").document(docId)
+                                        .set(checkoutDetails)
+                                        .addOnSuccessListener(unused -> finalizeCheckoutAndNotify(docId, checkoutDetails))
+                                        .addOnFailureListener(e -> {
+                                            binding.progressBar.setVisibility(View.GONE);
+                                            binding.placeOrder.setEnabled(true);
+                                            Toast.makeText(this, "Failed to save order: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                                        });
+                            }))
+                    .addOnFailureListener(e -> {
+                        binding.progressBar.setVisibility(View.GONE);
+                        binding.placeOrder.setEnabled(true);
+                        Toast.makeText(this, "Upload failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        // Log the error for debugging
+                        Log.e("UploadError", "Upload failed: " + e.getMessage());
+                    });
+        } catch (Exception e) {
+            binding.progressBar.setVisibility(View.GONE);
+            binding.placeOrder.setEnabled(true);
+            Toast.makeText(this, "Upload error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            Log.e("UploadError", "Exception: " + e.getMessage());
+        }
+    }
+
+    private void finalizeCheckoutAndNotify(String docId, Map<String, Object> checkoutDetails) {
+        // ADD ITEMS
+        for (Map<String, Object> item : cartItems) {
+            db.collection("orders").document(docId)
+                    .collection("items")
+                    .add(item);
+        }
+
+        // CLEAR CART
+        db.collection("users").document(userId)
+                .collection("cart")
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                        doc.getReference().delete();
+                    }
+                });
+
+        // create admin notification document
+        Map<String, Object> notif = new HashMap<>();
+        notif.put("orderId", docId);
+        notif.put("type", "payment_proof_uploaded");
+        notif.put("timestamp", Timestamp.now());
+        notif.put("read", false);
+        notif.put("userId", userId);
+        notif.put("name", checkoutDetails.get("name"));
+        notif.put("totalPrice", checkoutDetails.get("totalPrice"));
+
+        db.collection("admin_notifications").add(notif);
+
+        // DONE
+        binding.progressBar.setVisibility(View.GONE);
+        Intent intent = new Intent(getApplicationContext(), OrderSuccessActivity.class);
+        intent.putExtra("orderId", docId);
+        startActivity(intent);
+        finish();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 200 && resultCode == RESULT_OK && data != null) {
+            proofImageUri = data.getData();
+            binding.imgProof.setImageURI(proofImageUri);
+            Toast.makeText(this, "Proof of payment uploaded successfully", Toast.LENGTH_SHORT).show();
+        }
     }
 }

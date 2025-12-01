@@ -41,7 +41,10 @@
         <activity android:name=".UserDashboardActivity" android:exported="false" />
         <activity android:name=".RegisterActivity" android:exported="false" />
         <activity android:name=".LoginActivity" android:exported="false" />
-
+        <activity android:name=".PaymentProofActivity" android:label="Payment Proofs" />
+        <activity android:name=".PaymentProofViewerActivity" android:label="Payment Proof Viewer" />
+        <activity android:name=".AdminPaymentsActivity" />
+        <activity android:name=".AdminAddCodPaymentActivity" />
         <activity
             android:name=".AdminManageUsersActivity"
             android:exported="false"

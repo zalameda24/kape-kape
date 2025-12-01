@@ -22,6 +22,7 @@ import com.google.firebase.firestore.QuerySnapshot;
 import com.lu.coffeecompanion.databinding.ActivityAddressListBinding;
 
 public class ChooseAddressActivity extends AppCompatActivity {
+
     ActivityAddressListBinding binding;
     FirebaseFirestore db = FirebaseFirestore.getInstance();
     FirebaseAuth auth = FirebaseAuth.getInstance();
@@ -33,53 +34,60 @@ public class ChooseAddressActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         binding = ActivityAddressListBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
+        // Load address list
         loadAddresses();
 
-        binding.swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                loadAddresses();
-                binding.swipeRefreshLayout.setRefreshing(false);
-            }
+        binding.swipeRefreshLayout.setOnRefreshListener(() -> {
+            loadAddresses();
+            binding.swipeRefreshLayout.setRefreshing(false);
         });
 
         binding.title.setText("Choose Address");
 
-        binding.back.setOnClickListener(v -> {
-            finish();
+        binding.back.setOnClickListener(v -> finish());
+
+        // ✅ FIX: Add Address button now works
+        binding.addAddress.setOnClickListener(v -> {
+            Intent intent = new Intent(ChooseAddressActivity.this, AddAddressActivity.class);
+            startActivity(intent);
         });
     }
+
     private void loadAddresses() {
         binding.progressBar.setVisibility(View.VISIBLE);
         binding.parentLayout.removeAllViews();
+
         if (currentUser != null) {
             String userId = currentUser.getUid();
             db.collection("users").document(userId).collection("addresses")
                     .get()
                     .addOnCompleteListener(task -> {
+                        binding.progressBar.setVisibility(View.GONE);
+
                         if (task.isSuccessful()) {
                             QuerySnapshot querySnapshot = task.getResult();
+
                             if (querySnapshot != null) {
                                 for (QueryDocumentSnapshot document : querySnapshot) {
-                                    String documentId = document.getId();
-                                    String name = document.getString("name");
-                                    String address = document.getString("address");
-                                    String mobile = document.getString("mobile");
 
-                                    addAddressView(documentId, address, mobile, name);
-                                    binding.progressBar.setVisibility(View.GONE);
+                                    addAddressView(
+                                            document.getId(),
+                                            document.getString("address"),
+                                            document.getString("mobile"),
+                                            document.getString("name")
+                                    );
                                 }
                             }
                         }
                     });
-        }
-        else{
+        } else {
             binding.progressBar.setVisibility(View.GONE);
         }
     }
@@ -95,6 +103,7 @@ public class ChooseAddressActivity extends AppCompatActivity {
         addressTextView.setText(address);
         mobileTextView.setText(mobile);
         nameTextView.setText(name);
+
         pencil.setVisibility(View.GONE);
 
         addressView.setOnClickListener(v -> {
