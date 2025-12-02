@@ -2,10 +2,12 @@ buildscript {
     repositories {
         google()
         mavenCentral()
+        maven { url 'https://jitpack.io' } // Idagdag ito
     }
     dependencies {
         classpath libs.gradle
         classpath libs.google.services
+
     }
 }
 

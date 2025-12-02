@@ -167,7 +167,7 @@
 
         </androidx.cardview.widget.CardView>
 
-        <!-- Add COD Payment Card (NEW) -->
+        <!-- Add COD Payment Card -->
         <androidx.cardview.widget.CardView
             android:id="@+id/cardAddCodPayment"
             android:layout_width="match_parent"
@@ -318,11 +318,11 @@
 
         </LinearLayout>
 
-        <!-- Payment Statistics Section (NEW) -->
+        <!-- Payment Statistics Section (All Time) -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Payment Statistics"
+            android:text="All Time Revenue"
             android:textSize="20sp"
             android:textStyle="bold"
             android:textColor="@color/coffee_dark_brown"
@@ -477,6 +477,196 @@
                         android:layout_height="wrap_content"
                         android:text="₱0.00"
                         android:textSize="28sp"
+                        android:textStyle="bold"
+                        android:textColor="#2E7D32" />
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Bar Chart Section with Date Range Picker -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Revenue Chart"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/coffee_dark_brown"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp" />
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="32dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="3dp"
+            app:cardBackgroundColor="@color/white">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <!-- Date Range Selector -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Select Date Range"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/coffee_dark_brown"
+                    android:layout_marginBottom="12dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
+
+                    <Button
+                        android:id="@+id/btnStartDate"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        android:text="Start Date"
+                        android:textSize="12sp"
+                        android:backgroundTint="@color/coffee_light_brown"
+                        android:textColor="@color/coffee_dark_brown"
+                        android:padding="12dp" />
+
+                    <Button
+                        android:id="@+id/btnEndDate"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="End Date"
+                        android:textSize="12sp"
+                        android:backgroundTint="@color/coffee_light_brown"
+                        android:textColor="@color/coffee_dark_brown"
+                        android:padding="12dp" />
+
+                </LinearLayout>
+
+                <!-- Current Date Range Display -->
+                <TextView
+                    android:id="@+id/tvDateRange"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Date Range"
+                    android:textSize="14sp"
+                    android:textColor="@color/coffee_medium_brown"
+                    android:textStyle="italic"
+                    android:layout_gravity="center"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Bar Chart -->
+                <com.github.mikephil.charting.charts.BarChart
+                    android:id="@+id/barChart"
+                    android:layout_width="match_parent"
+                    android:layout_height="300dp"
+                    android:layout_marginBottom="16dp" />
+
+                <!-- Chart Totals Section -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#E0E0E0"
+                    android:layout_marginBottom="16dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Chart Period Totals"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/coffee_dark_brown"
+                    android:layout_marginBottom="12dp" />
+
+                <!-- Chart GCash Total -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp"
+                    android:padding="8dp"
+                    android:background="#E3F2FD">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="GCash Total:"
+                        android:textSize="14sp"
+                        android:textColor="@color/coffee_dark_brown" />
+
+                    <TextView
+                        android:id="@+id/tvChartGcashTotal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="₱0.00"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#1565C0" />
+
+                </LinearLayout>
+
+                <!-- Chart COD Total -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="8dp"
+                    android:padding="8dp"
+                    android:background="#FFF3E0">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="COD Total:"
+                        android:textSize="14sp"
+                        android:textColor="@color/coffee_dark_brown" />
+
+                    <TextView
+                        android:id="@+id/tvChartCodTotal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="₱0.00"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:textColor="#EF6C00" />
+
+                </LinearLayout>
+
+                <!-- Chart Overall Total -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="8dp"
+                    android:background="#C8E6C9">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Period Total:"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/coffee_dark_brown" />
+
+                    <TextView
+                        android:id="@+id/tvChartOverallTotal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="₱0.00"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="#2E7D32" />
 
