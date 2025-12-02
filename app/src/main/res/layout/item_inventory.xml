@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardInventoryItem"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="6dp"
+    android:background="@color/coffee_cream">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical">
+
+        <!-- Product Image -->
+        <ImageView
+            android:id="@+id/ivProductImage"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/image_placeholder_bg"
+            android:background="@drawable/image_placeholder_bg"
+            android:contentDescription="Product Image"
+            android:layout_marginEnd="12dp"/>
+
+        <!-- Product Info -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvStockProductName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Product Name"
+                android:textColor="@color/coffee_dark_brown"
+                android:textStyle="bold"
+                android:textSize="18sp"/>
+
+            <TextView
+                android:id="@+id/tvProductPrice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="₱0.00"
+                android:textColor="@color/coffee_dark_brown"
+                android:textSize="16sp"
+                android:layout_marginTop="4dp"/>
+
+            <TextView
+                android:id="@+id/tvProductQuantity"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Stock: 0"
+                android:textColor="@color/coffee_dark_brown"
+                android:textSize="14sp"
+                android:layout_marginTop="2dp"/>
+
+            <!-- New Stock Amount & Confirm Button -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="6dp"
+                android:gravity="center_vertical">
+
+                <EditText
+                    android:id="@+id/etStockAmount"
+                    android:layout_width="80dp"
+                    android:layout_height="wrap_content"
+                    android:hint="Qty"
+                    android:inputType="number"
+                    android:background="@drawable/edit_text_bg"
+                    android:textColor="@color/coffee_dark_brown"
+                    android:padding="6dp"/>
+
+                <Button
+                    android:id="@+id/btnConfirmStock"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Confirm"
+                    android:textColor="@android:color/white"
+                    android:backgroundTint="@color/coffee_dark"
+                    android:layout_marginStart="8dp"
+                    android:padding="6dp"
+                    android:textAllCaps="false"/>
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Action Buttons -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <Button
+                android:id="@+id/btnAddStock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Add Stock"
+                android:textColor="@color/coffee_dark_brown"
+                android:backgroundTint="@color/coffee_light_brown"
+                android:padding="6dp"
+                android:textAllCaps="false"
+                android:layout_marginBottom="6dp"/>
+
+            <Button
+                android:id="@+id/btnDeleteStock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Delete"
+                android:textColor="@android:color/white"
+                android:backgroundTint="@color/coffee_red"
+                android:padding="6dp"
+                android:textAllCaps="false"/>
+        </LinearLayout>
+
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

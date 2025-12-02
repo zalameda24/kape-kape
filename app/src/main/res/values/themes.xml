@@ -1,11 +1,20 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.CoffeeCompanion" parent="Theme.Material3.DayNight.NoActionBar">
+
+    <style name="Theme.CoffeeCompanion" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary Colors -->
+        <item name="colorPrimary">@color/coffee_dark_brown</item>
+        <item name="colorPrimaryVariant">@color/coffee_medium_brown</item>
+        <item name="colorOnPrimary">@color/white</item>
+
+        <!-- Secondary Colors -->
+        <item name="colorSecondary">@color/coffee_light_brown</item>
+        <item name="colorSecondaryVariant">@color/coffee_medium_brown</item>
+        <item name="colorOnSecondary">@color/coffee_dark_brown</item>
+
+        <!-- Background & Text -->
         <item name="android:colorBackground">@color/backgroundColor</item>
         <item name="android:textColor">@color/textColor</item>
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/backgroundColor</item>
     </style>
 
-    <style name="Theme.CoffeeCompanion" parent="Base.Theme.CoffeeCompanion" />
 </resources>

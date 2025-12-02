@@ -4,8 +4,10 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-import com.google.firebase.Timestamp;
+
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.lu.coffeecompanion.databinding.ActivityAdminAddCodPaymentBinding;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -65,15 +67,17 @@ public class AdminAddCodPaymentActivity extends AppCompatActivity {
         binding.btnAddPayment.setEnabled(false);
         binding.progressBar.setVisibility(android.view.View.VISIBLE);
 
-        Map<String, Object> codPayment = new HashMap<>();
-        codPayment.put("customerName", customerName);
-        codPayment.put("amount", amount);
-        codPayment.put("notes", notes);
-        codPayment.put("timestamp", Timestamp.now());
-        codPayment.put("paymentMethod", "Cash on Delivery");
+        Map<String, Object> payment = new HashMap<>();
+        payment.put("customerName", customerName);
+        payment.put("amount", amount);
+        payment.put("notes", notes);
+        payment.put("paymentMethod", "Cash on Delivery");
+
+        // 🔥 Use server timestamp (correct)
+        payment.put("timestamp", FieldValue.serverTimestamp());
 
         firestore.collection("cod_payments")
-                .add(codPayment)
+                .add(payment)
                 .addOnSuccessListener(documentReference -> {
                     Toast.makeText(this, "COD Payment added successfully!", Toast.LENGTH_SHORT).show();
                     binding.progressBar.setVisibility(android.view.View.GONE);

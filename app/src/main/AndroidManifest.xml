@@ -3,6 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:allowBackup="true"
@@ -15,12 +18,12 @@
         android:theme="@style/Theme.CoffeeCompanion"
         tools:targetApi="31">
 
-        <!-- ADD THIS LINE -->
+        <!-- Firebase Realtime Database URL -->
         <meta-data
             android:name="firebase_database_url"
             android:value="https://coffee-companion-e3c06-default-rtdb.firebaseio.com/" />
 
-        <!-- Your existing activities -->
+        <!-- Existing activities -->
         <activity android:name=".OrderDetailsActivity" android:exported="false" />
         <activity android:name=".OrderSuccessActivity" android:exported="false" />
         <activity android:name=".CoffeePicksActivity" android:exported="false" />
@@ -55,6 +58,18 @@
                 android:value=".AdminDashboardActivity" />
         </activity>
 
+        <!-- NEW AdminInventoryActivity -->
+        <activity
+            android:name=".AdminInventoryActivity"
+            android:exported="false"
+            android:label="Inventory"
+            android:parentActivityName=".AdminDashboardActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".AdminDashboardActivity" />
+        </activity>
+
+        <!-- Main launcher activity -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -64,9 +79,5 @@
             </intent-filter>
         </activity>
 
-
-        <meta-data
-            android:name="firebase_database_url"
-            android:value="https://coffee-companion-e3c06-default-rtdb.firebaseio.com/" />
     </application>
 </manifest>

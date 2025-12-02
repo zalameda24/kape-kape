@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@color/cream">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add Stock"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="@color/coffee_dark_brown"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"/>
+
+    <EditText
+        android:id="@+id/etStockQuantity"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Quantity"
+        android:inputType="number"
+        android:background="@drawable/edit_text_bg"
+        android:padding="12dp"
+        android:textColor="@color/coffee_dark_brown"
+        android:textColorHint="@color/coffee_muted"
+        android:layout_marginBottom="16dp"/>
+
+    <Button
+        android:id="@+id/btnAddStockDialog"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Add Stock"
+        android:backgroundTint="@color/coffee_brown"
+        android:textColor="@color/cream"/>
+</LinearLayout>

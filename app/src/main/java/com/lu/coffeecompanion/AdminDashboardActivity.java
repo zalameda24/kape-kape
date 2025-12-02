@@ -1,31 +1,46 @@
 package com.lu.coffeecompanion;
 
 import android.app.AlertDialog;
+import android.app.DatePickerDialog;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.cardview.widget.CardView;
+
+import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.components.Legend;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.github.mikephil.charting.formatter.ValueFormatter;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.*;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 import com.lu.coffeecompanion.databinding.ActivityAdminDashboardBinding;
+
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class AdminDashboardActivity extends AppCompatActivity {
 
-    ActivityAdminDashboardBinding binding;
+    private ActivityAdminDashboardBinding binding;
     private DatabaseReference dbRef;
     private FirebaseFirestore firestore;
 
-    private TextView tvTotalGcashPayments;
-    private TextView tvTotalCodPayments;
-    private TextView tvOverallTotal;
+    private TextView tvTotalGcashPayments, tvTotalCodPayments, tvOverallTotal;
+    private BarChart barChart;
+
+    private TextView tvChartGcashTotal, tvChartCodTotal, tvChartOverallTotal, tvDateRange;
+    private Calendar startCalendar, endCalendar;
+    private SimpleDateFormat dateFormat, displayDateFormat;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,45 +51,123 @@ public class AdminDashboardActivity extends AppCompatActivity {
         dbRef = FirebaseDatabase.getInstance().getReference();
         firestore = FirebaseFirestore.getInstance();
 
-        // Initialize statistics TextViews
-        tvTotalGcashPayments = findViewById(R.id.tvTotalGcashPayments);
-        tvTotalCodPayments = findViewById(R.id.tvTotalCodPayments);
-        tvOverallTotal = findViewById(R.id.tvOverallTotal);
+        // Date formatters
+        dateFormat = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        displayDateFormat = new SimpleDateFormat("MMM dd, yyyy", Locale.getDefault());
 
-        // User Management Card Click
-        CardView userManagementCard = findViewById(R.id.cardUserManagement);
-        userManagementCard.setOnClickListener(v -> {
-            Intent intent = new Intent(AdminDashboardActivity.this, AdminManageUsersActivity.class);
-            startActivity(intent);
-        });
+        startCalendar = Calendar.getInstance();
+        startCalendar.add(Calendar.DAY_OF_YEAR, -6);
+        endCalendar = Calendar.getInstance();
 
-        // Payments Card Click
-        CardView paymentsCard = findViewById(R.id.cardPayments);
-        paymentsCard.setOnClickListener(v -> {
-            Log.d("AdminDashboard", "Payments card clicked");
-            Intent intent = new Intent(AdminDashboardActivity.this, AdminPaymentsActivity.class);
-            startActivity(intent);
-        });
+        // Initialize views
+        tvTotalGcashPayments = binding.tvTotalGcashPayments;
+        tvTotalCodPayments = binding.tvTotalCodPayments;
+        tvOverallTotal = binding.tvOverallTotal;
+        barChart = binding.barChart;
 
-        // Add COD Payment Card Click (NEW)
-        CardView addCodPaymentCard = findViewById(R.id.cardAddCodPayment);
-        addCodPaymentCard.setOnClickListener(v -> {
-            Intent intent = new Intent(AdminDashboardActivity.this, AdminAddCodPaymentActivity.class);
-            startActivity(intent);
-        });
+        tvChartGcashTotal = binding.tvChartGcashTotal;
+        tvChartCodTotal = binding.tvChartCodTotal;
+        tvChartOverallTotal = binding.tvChartOverallTotal;
+        tvDateRange = binding.tvDateRange;
 
-        // Logout Button
-        binding.btnLogout.setOnClickListener(v -> {
-            showLogoutDialog();
-        });
+        // Date pickers
+        binding.btnStartDate.setOnClickListener(v -> showStartDatePicker());
+        binding.btnEndDate.setOnClickListener(v -> showEndDatePicker());
+        updateDateButtons();
 
-        // Load user statistics
+        // Chart
+        setupBarChart();
+
+        // -------------------------
+        // CARD CLICKS
+        // -------------------------
+        binding.cardUserManagement.setOnClickListener(v -> startActivity(new Intent(this, AdminManageUsersActivity.class)));
+        binding.cardPayments.setOnClickListener(v -> startActivity(new Intent(this, AdminPaymentsActivity.class)));
+        binding.cardAddCodPayment.setOnClickListener(v -> startActivity(new Intent(this, AdminAddCodPaymentActivity.class)));
+        binding.cardInventory.setOnClickListener(v -> startActivity(new Intent(this, AdminInventoryActivity.class)));
+
+        binding.btnLogout.setOnClickListener(v -> showLogoutDialog());
+
+        // Load data
         loadUserStats();
-
-        // Load payment statistics
         loadPaymentStatistics();
     }
 
+    // -------------------------
+    // DATE PICKERS
+    // -------------------------
+    private void showStartDatePicker() {
+        DatePickerDialog dp = new DatePickerDialog(this, (view, year, month, day) -> {
+            startCalendar.set(year, month, day);
+            if (startCalendar.after(endCalendar)) endCalendar.setTime(startCalendar.getTime());
+            updateDateButtons();
+            loadPaymentStatistics();
+        }, startCalendar.get(Calendar.YEAR), startCalendar.get(Calendar.MONTH), startCalendar.get(Calendar.DAY_OF_MONTH));
+        dp.getDatePicker().setMaxDate(System.currentTimeMillis());
+        dp.show();
+    }
+
+    private void showEndDatePicker() {
+        DatePickerDialog dp = new DatePickerDialog(this, (view, year, month, day) -> {
+            endCalendar.set(year, month, day);
+            if (endCalendar.before(startCalendar)) startCalendar.setTime(endCalendar.getTime());
+            updateDateButtons();
+            loadPaymentStatistics();
+        }, endCalendar.get(Calendar.YEAR), endCalendar.get(Calendar.MONTH), endCalendar.get(Calendar.DAY_OF_MONTH));
+        dp.getDatePicker().setMaxDate(System.currentTimeMillis());
+        dp.show();
+    }
+
+    private void updateDateButtons() {
+        binding.btnStartDate.setText(displayDateFormat.format(startCalendar.getTime()));
+        binding.btnEndDate.setText(displayDateFormat.format(endCalendar.getTime()));
+        tvDateRange.setText(displayDateFormat.format(startCalendar.getTime()) + " - " + displayDateFormat.format(endCalendar.getTime()));
+    }
+
+    // -------------------------
+    // BAR CHART SETUP
+    // -------------------------
+    private void setupBarChart() {
+        barChart.getDescription().setEnabled(false);
+        barChart.setDrawGridBackground(false);
+        barChart.setDrawBarShadow(false);
+        barChart.setPinchZoom(true);
+        barChart.setDrawValueAboveBar(true);
+
+        XAxis xAxis = barChart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setDrawGridLines(false);
+        xAxis.setGranularity(1f);
+        xAxis.setTextColor(Color.parseColor("#5D4037"));
+        xAxis.setLabelRotationAngle(-45f);
+
+        YAxis leftAxis = barChart.getAxisLeft();
+        leftAxis.setDrawGridLines(true);
+        leftAxis.setGridColor(Color.parseColor("#E0E0E0"));
+        leftAxis.setTextColor(Color.parseColor("#5D4037"));
+        leftAxis.setAxisMinimum(0f);
+        leftAxis.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                return "₱" + String.format("%.0f", value);
+            }
+        });
+
+        barChart.getAxisRight().setEnabled(false);
+
+        Legend legend = barChart.getLegend();
+        legend.setEnabled(true);
+        legend.setTextColor(Color.parseColor("#5D4037"));
+        legend.setTextSize(12f);
+        legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
+        legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
+
+        barChart.animateY(800);
+    }
+
+    // -------------------------
+    // USER STATS
+    // -------------------------
     private void loadUserStats() {
         dbRef.child("users").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -82,19 +175,12 @@ public class AdminDashboardActivity extends AppCompatActivity {
                 if (snapshot.exists()) {
                     int totalUsers = (int) snapshot.getChildrenCount();
                     int activeUsers = 0;
-
-                    for (DataSnapshot userSnapshot : snapshot.getChildren()) {
-                        Boolean blocked = userSnapshot.child("blocked").getValue(Boolean.class);
-                        if (blocked == null || !blocked) {
-                            activeUsers++;
-                        }
+                    for (DataSnapshot user : snapshot.getChildren()) {
+                        Boolean blocked = user.child("blocked").getValue(Boolean.class);
+                        if (blocked == null || !blocked) activeUsers++;
                     }
-
-                    TextView tvTotalUsers = findViewById(R.id.tvTotalUsers);
-                    TextView tvActiveUsers = findViewById(R.id.tvActiveUsers);
-
-                    if (tvTotalUsers != null) tvTotalUsers.setText(String.valueOf(totalUsers));
-                    if (tvActiveUsers != null) tvActiveUsers.setText(String.valueOf(activeUsers));
+                    binding.tvTotalUsers.setText(String.valueOf(totalUsers));
+                    binding.tvActiveUsers.setText(String.valueOf(activeUsers));
                 }
             }
 
@@ -105,61 +191,144 @@ public class AdminDashboardActivity extends AppCompatActivity {
         });
     }
 
+    // -------------------------
+    // PAYMENT STATS
+    // -------------------------
     private void loadPaymentStatistics() {
-        // Load GCash payments from orders collection
-        firestore.collection("orders")
-                .whereEqualTo("paymentMethod", "GCash")
-                .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    double totalGcash = 0.0;
-                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
-                        Double totalPrice = document.getDouble("totalPrice");
-                        if (totalPrice != null) {
-                            totalGcash += totalPrice;
-                        }
-                    }
+        Map<String, Double> gcashByDate = new TreeMap<>();
+        Map<String, Double> codByDate = new TreeMap<>();
+        Calendar current = (Calendar) startCalendar.clone();
+        while (!current.after(endCalendar)) {
+            String key = dateFormat.format(current.getTime());
+            gcashByDate.put(key, 0.0);
+            codByDate.put(key, 0.0);
+            current.add(Calendar.DAY_OF_YEAR, 1);
+        }
 
-                    final double finalGcashTotal = totalGcash;
+        Calendar startOfDay = (Calendar) startCalendar.clone();
+        startOfDay.set(Calendar.HOUR_OF_DAY, 0); startOfDay.set(Calendar.MINUTE, 0);
+        startOfDay.set(Calendar.SECOND, 0); startOfDay.set(Calendar.MILLISECOND, 0);
 
-                    // Load COD payments from cod_payments collection
-                    firestore.collection("cod_payments")
-                            .get()
-                            .addOnSuccessListener(codSnapshots -> {
-                                double totalCod = 0.0;
-                                for (QueryDocumentSnapshot doc : codSnapshots) {
-                                    Double amount = doc.getDouble("amount");
-                                    if (amount != null) {
-                                        totalCod += amount;
-                                    }
-                                }
+        Calendar endOfDay = (Calendar) endCalendar.clone();
+        endOfDay.set(Calendar.HOUR_OF_DAY, 23); endOfDay.set(Calendar.MINUTE, 59);
+        endOfDay.set(Calendar.SECOND, 59); endOfDay.set(Calendar.MILLISECOND, 999);
 
-                                // Update UI with statistics
-                                updatePaymentStatistics(finalGcashTotal, totalCod);
-                            })
-                            .addOnFailureListener(e -> {
-                                Log.e("AdminDashboard", "Error loading COD payments: " + e.getMessage());
-                                updatePaymentStatistics(finalGcashTotal, 0.0);
-                            });
-                })
-                .addOnFailureListener(e -> {
-                    Log.e("AdminDashboard", "Error loading GCash payments: " + e.getMessage());
-                });
+        loadAllPaymentsDirect(gcashByDate, codByDate, startOfDay.getTime(), endOfDay.getTime());
     }
 
-    private void updatePaymentStatistics(double gcashTotal, double codTotal) {
-        double overallTotal = gcashTotal + codTotal;
+    private void loadAllPaymentsDirect(Map<String, Double> gcashByDate, Map<String, Double> codByDate,
+                                       Date startDate, Date endDate) {
+        final double[] allTimeGcash = {0.0}, allTimeCod = {0.0};
+        final double[] chartGcash = {0.0}, chartCod = {0.0};
 
-        if (tvTotalGcashPayments != null) {
-            tvTotalGcashPayments.setText(String.format("₱%.2f", gcashTotal));
+        firestore.collection("orders").get().addOnSuccessListener(ordersSnapshot -> {
+            for (QueryDocumentSnapshot doc : ordersSnapshot) {
+                String method = doc.getString("paymentMethod");
+                Double total = doc.getDouble("totalPrice");
+                Timestamp ts = doc.getTimestamp("timestamp");
+                if (total == null || ts == null) continue;
+
+                Date orderDate = ts.toDate();
+                if ("GCash".equals(method)) {
+                    allTimeGcash[0] += total;
+                    if (!orderDate.before(startDate) && !orderDate.after(endDate)) {
+                        chartGcash[0] += total;
+                        String key = dateFormat.format(orderDate);
+                        gcashByDate.put(key, gcashByDate.getOrDefault(key, 0.0) + total);
+                    }
+                }
+            }
+
+            firestore.collection("cod_payments").get().addOnSuccessListener(codSnapshot -> {
+                for (QueryDocumentSnapshot doc : codSnapshot) {
+                    Double amount = doc.getDouble("amount");
+                    Timestamp ts = doc.getTimestamp("timestamp");
+                    if (amount == null || ts == null) continue;
+
+                    allTimeCod[0] += amount;
+                    Date paymentDate = ts.toDate();
+                    if (!paymentDate.before(startDate) && !paymentDate.after(endDate)) {
+                        chartCod[0] += amount;
+                        String key = dateFormat.format(paymentDate);
+                        codByDate.put(key, codByDate.getOrDefault(key, 0.0) + amount);
+                    }
+                }
+
+                updatePaymentStatistics(allTimeGcash[0], allTimeCod[0]);
+                updateBarChart(gcashByDate, codByDate, chartGcash[0], chartCod[0]);
+            });
+
+        });
+    }
+
+    private void updateBarChart(Map<String, Double> gcashByDate, Map<String, Double> codByDate,
+                                double gcashTotal, double codTotal) {
+        ArrayList<BarEntry> gcashEntries = new ArrayList<>();
+        ArrayList<BarEntry> codEntries = new ArrayList<>();
+        ArrayList<String> labels = new ArrayList<>();
+        SimpleDateFormat chartFormat = new SimpleDateFormat("MMM dd", Locale.getDefault());
+
+        int index = 0;
+        for (String dateKey : gcashByDate.keySet()) {
+            gcashEntries.add(new BarEntry(index, gcashByDate.get(dateKey).floatValue()));
+            codEntries.add(new BarEntry(index, codByDate.get(dateKey).floatValue()));
+            try {
+                labels.add(chartFormat.format(dateFormat.parse(dateKey)));
+            } catch (Exception e) {
+                labels.add(dateKey);
+            }
+            index++;
         }
 
-        if (tvTotalCodPayments != null) {
-            tvTotalCodPayments.setText(String.format("₱%.2f", codTotal));
-        }
+        BarDataSet gcashSet = new BarDataSet(gcashEntries, "GCash");
+        gcashSet.setColor(Color.parseColor("#1565C0"));
+        gcashSet.setValueTextColor(Color.parseColor("#5D4037"));
+        gcashSet.setValueTextSize(9f);
+        gcashSet.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                return value == 0 ? "" : "₱" + String.format("%.0f", value);
+            }
+        });
 
-        if (tvOverallTotal != null) {
-            tvOverallTotal.setText(String.format("₱%.2f", overallTotal));
-        }
+        BarDataSet codSet = new BarDataSet(codEntries, "COD");
+        codSet.setColor(Color.parseColor("#EF6C00"));
+        codSet.setValueTextColor(Color.parseColor("#5D4037"));
+        codSet.setValueTextSize(9f);
+        codSet.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                return value == 0 ? "" : "₱" + String.format("%.0f", value);
+            }
+        });
+
+        BarData barData = new BarData(gcashSet, codSet);
+        float groupSpace = 0.12f, barSpace = 0.02f, barWidth = 0.42f;
+        barData.setBarWidth(barWidth);
+
+        barChart.setData(barData);
+        barChart.getXAxis().setValueFormatter(new IndexAxisValueFormatter(labels));
+        barChart.getXAxis().setLabelCount(labels.size());
+        barChart.getXAxis().setAxisMinimum(-0.5f);
+        barChart.getXAxis().setAxisMaximum(labels.size() - 0.5f);
+        if (labels.size() > 1) barChart.groupBars(-0.5f, groupSpace, barSpace);
+        barChart.invalidate();
+
+        updateChartTotals(gcashTotal, codTotal);
+    }
+
+    private void updateChartTotals(double gcash, double cod) {
+        double overall = gcash + cod;
+        tvChartGcashTotal.setText(String.format("₱%.2f", gcash));
+        tvChartCodTotal.setText(String.format("₱%.2f", cod));
+        tvChartOverallTotal.setText(String.format("₱%.2f", overall));
+    }
+
+    private void updatePaymentStatistics(double gcash, double cod) {
+        double overall = gcash + cod;
+        tvTotalGcashPayments.setText(String.format("₱%.2f", gcash));
+        tvTotalCodPayments.setText(String.format("₱%.2f", cod));
+        tvOverallTotal.setText(String.format("₱%.2f", overall));
     }
 
     private void showLogoutDialog() {
@@ -168,9 +337,8 @@ public class AdminDashboardActivity extends AppCompatActivity {
                 .setMessage("Are you sure you want to logout?")
                 .setPositiveButton("Yes", (dialog, which) -> {
                     FirebaseAuth.getInstance().signOut();
-                    Intent intent = new Intent(AdminDashboardActivity.this, LoginActivity.class);
-                    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
+                    startActivity(new Intent(this, LoginActivity.class)
+                            .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK));
                     finish();
                 })
                 .setNegativeButton("No", null)

@@ -1,38 +1,37 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-        <color name="colorPrimary">#513a1c</color>
-        <color name="colorAccent">#513a1c</color>
-        <color name="textColor">#333333</color>
-        <color name="backgroundColor">#F5F5F5</color>
-        <color name="danger">#DC3545</color>
-        <color name="success">#198754</color>
-        <color name="muted">#6b798d</color>
-        <color name="white">#ffffff</color>
+        <!-- Basic Colors -->
+        <color name="white">#FFFFFF</color>
+        <color name="black">#000000</color>
 
-                <!-- Existing colors -->
-                <color name="primary_color">#2196F3</color>
+        <!-- Coffee Theme -->
+        <color name="coffee_dark_brown">#4E342E</color>
+        <color name="coffee_medium_brown">#6D4C41</color>
+        <color name="coffee_light_brown">#D7CCC8</color>
+        <color name="coffee_brown">#795548</color>
+        <color name="coffee_red">#D32F2F</color>
+        <color name="coffee_green">#388E3C</color>
+        <color name="coffee_warning">#FBC02D</color>
+        <color name="coffee_error">#C62828</color>
+        <color name="cream">#FFF5E1</color>
+        <color name="coffee_muted">#A1887F</color> <!-- muted brown -->
 
-                <color name="black">#000000</color>
-                <color name="gray">#757575</color>
-                <color name="red">#F44336</color>
-
-                <!-- New colors for admin dashboard -->
-                <color name="card_blue">#2196F3</color>
-                <color name="card_green">#4CAF50</color>
-                <color name="card_orange">#FF9800</color>
-                <color name="card_purple">#9C27B0</color>
-
+        <!-- Coffee Theme Colors -->
+        <color name="coffee_dark">#4B2E2E</color>       <!-- Dark brown -->
+        <color name="coffee_medium">#7B4B3A</color>     <!-- Medium brown -->
+        <color name="coffee_light">#CBB69C</color>      <!-- Light brown / cream -->
 
 
-                <!-- Coffee Theme Colors -->
-                <color name="coffee_dark_brown">#6F4E37</color>
-                <color name="coffee_medium_brown">#A67B5B</color>
-                <color name="coffee_light_brown">#D2B48C</color>
-                <color name="coffee_cream">#F5F5DC</color>
 
-        <color name="coffee_warning">#FF9800</color>
-        <color name="coffee_error">#F44336</color>
-        <color name="coffee_success">#4CAF50</color>
+        <!-- Status Colors -->
+        <color name="success">#4CAF50</color>
+        <color name="danger">#D32F2F</color>
+        <color name="muted">#9E9E9E</color>
+        <color name="red">#F44336</color>
 
+        <!-- Background & Text -->
+        <color name="backgroundColor">#FFF8F0</color> <!-- light cream -->
+        <color name="textColor">#3E2723</color>
+        <color name="colorPrimary">#6D4C41</color>
+        <color name="colorAccent">#D7CCC8</color>
 
 </resources>
