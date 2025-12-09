@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -61,6 +60,9 @@ public class InventoryManagementActivity extends AppCompatActivity {
 
         // Add Item button
         findViewById(R.id.btnAddItem).setOnClickListener(v -> showAddItemDialog());
+
+        // View Archived button
+        findViewById(R.id.btnViewArchived).setOnClickListener(v -> showArchivedItemsDialog());
     }
 
     private void showAddItemDialog() {
@@ -87,7 +89,6 @@ public class InventoryManagementActivity extends AppCompatActivity {
             try {
                 int quantity = Integer.parseInt(quantityStr);
                 double price = Double.parseDouble(priceStr);
-
                 addInventoryItem(productName, quantity, price);
             } catch (NumberFormatException e) {
                 Toast.makeText(this, "Please enter valid numbers", Toast.LENGTH_SHORT).show();
@@ -103,6 +104,7 @@ public class InventoryManagementActivity extends AppCompatActivity {
         item.put("productName", productName);
         item.put("quantity", quantity);
         item.put("price", price);
+        item.put("isArchived", false);
         item.put("timestamp", System.currentTimeMillis());
 
         firestore.collection("inventory")
@@ -117,8 +119,8 @@ public class InventoryManagementActivity extends AppCompatActivity {
     }
 
     private void loadInventory() {
+        // Load all items first, then filter locally to avoid Firestore index requirements
         firestore.collection("inventory")
-                .orderBy("productName")
                 .get()
                 .addOnSuccessListener(queryDocumentSnapshots -> {
                     inventoryList.clear();
@@ -128,12 +130,23 @@ public class InventoryManagementActivity extends AppCompatActivity {
                         String productName = document.getString("productName");
                         Long quantity = document.getLong("quantity");
                         Double price = document.getDouble("price");
+                        Boolean isArchived = document.getBoolean("isArchived");
 
-                        if (productName != null && quantity != null && price != null) {
+                        // Only add if not archived (isArchived == false or null)
+                        boolean shouldAdd = (isArchived == null || !isArchived) &&
+                                productName != null &&
+                                quantity != null &&
+                                price != null;
+
+                        if (shouldAdd) {
                             InventoryItem item = new InventoryItem(id, productName, quantity.intValue(), price);
                             inventoryList.add(item);
                         }
                     }
+
+                    // Sort by product name locally
+                    inventoryList.sort((item1, item2) ->
+                            item1.productName.compareToIgnoreCase(item2.productName));
 
                     adapter.notifyDataSetChanged();
 
@@ -150,17 +163,17 @@ public class InventoryManagementActivity extends AppCompatActivity {
                 });
     }
 
-    private void deleteInventoryItem(String itemId, int position) {
+    private void archiveInventoryItem(String itemId, int position) {
         new AlertDialog.Builder(this)
-                .setTitle("Delete Item")
-                .setMessage("Are you sure you want to delete this item?")
-                .setPositiveButton("Delete", (dialog, which) -> {
+                .setTitle("Archive Item")
+                .setMessage("Are you sure you want to archive this item?")
+                .setPositiveButton("Archive", (dialog, which) -> {
                     firestore.collection("inventory").document(itemId)
-                            .delete()
+                            .update("isArchived", true)
                             .addOnSuccessListener(aVoid -> {
                                 inventoryList.remove(position);
                                 adapter.notifyItemRemoved(position);
-                                Toast.makeText(this, "Item deleted", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(this, "Item archived", Toast.LENGTH_SHORT).show();
 
                                 if (inventoryList.isEmpty()) {
                                     tvEmptyState.setVisibility(View.VISIBLE);
@@ -168,11 +181,77 @@ public class InventoryManagementActivity extends AppCompatActivity {
                                 }
                             })
                             .addOnFailureListener(e -> {
-                                Toast.makeText(this, "Error deleting item", Toast.LENGTH_SHORT).show();
+                                Toast.makeText(this, "Error archiving item", Toast.LENGTH_SHORT).show();
                             });
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private void showArchivedItemsDialog() {
+        // Load all items and filter archived ones locally
+        firestore.collection("inventory")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    List<InventoryItem> archivedItems = new ArrayList<>();
+
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        String id = document.getId();
+                        String productName = document.getString("productName");
+                        Long quantity = document.getLong("quantity");
+                        Double price = document.getDouble("price");
+                        Boolean isArchived = document.getBoolean("isArchived");
+
+                        // Only add if archived (isArchived == true)
+                        if (isArchived != null && isArchived &&
+                                productName != null && quantity != null && price != null) {
+                            InventoryItem item = new InventoryItem(id, productName, quantity.intValue(), price);
+                            archivedItems.add(item);
+                        }
+                    }
+
+                    // Sort by product name locally
+                    archivedItems.sort((item1, item2) ->
+                            item1.productName.compareToIgnoreCase(item2.productName));
+
+                    if (archivedItems.isEmpty()) {
+                        Toast.makeText(this, "No archived items found", Toast.LENGTH_SHORT).show();
+                    } else {
+                        showArchivedDialog(archivedItems);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error loading archived items", Toast.LENGTH_SHORT).show();
+                });
+    }
+
+    private void showArchivedDialog(List<InventoryItem> archivedItems) {
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(this);
+        builder.setTitle("Archived Items (" + archivedItems.size() + ")");
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_archived_items, null);
+        builder.setView(dialogView);
+
+        RecyclerView archivedRecyclerView = dialogView.findViewById(R.id.recyclerViewArchived);
+        archivedRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        ArchivedAdapter archivedAdapter = new ArchivedAdapter(archivedItems);
+        archivedRecyclerView.setAdapter(archivedAdapter);
+
+        builder.setPositiveButton("Close", null);
+        builder.show();
+    }
+
+    private void unarchiveItem(String itemId) {
+        firestore.collection("inventory").document(itemId)
+                .update("isArchived", false)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(this, "Item unarchived successfully", Toast.LENGTH_SHORT).show();
+                    loadInventory(); // Reload the inventory to show the unarchived item
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(this, "Error unarchiving item", Toast.LENGTH_SHORT).show();
+                });
     }
 
     private void updateInventoryItem(String itemId, String productName, int quantity, double price) {
@@ -207,7 +286,7 @@ public class InventoryManagementActivity extends AppCompatActivity {
         }
     }
 
-    // RecyclerView Adapter
+    // Main Inventory RecyclerView Adapter
     private class InventoryAdapter extends RecyclerView.Adapter<InventoryAdapter.ViewHolder> {
 
         @Override
@@ -226,7 +305,7 @@ public class InventoryManagementActivity extends AppCompatActivity {
             holder.tvPrice.setText(String.format("₱%.2f", item.price));
 
             holder.btnEdit.setOnClickListener(v -> showEditDialog(item, position));
-            holder.btnDelete.setOnClickListener(v -> deleteInventoryItem(item.id, position));
+            holder.btnArchive.setOnClickListener(v -> archiveInventoryItem(item.id, position));
         }
 
         @Override
@@ -236,7 +315,7 @@ public class InventoryManagementActivity extends AppCompatActivity {
 
         class ViewHolder extends RecyclerView.ViewHolder {
             TextView tvProductName, tvQuantity, tvPrice;
-            ImageButton btnEdit, btnDelete;
+            ImageButton btnEdit, btnArchive;
 
             ViewHolder(View itemView) {
                 super(itemView);
@@ -244,7 +323,57 @@ public class InventoryManagementActivity extends AppCompatActivity {
                 tvQuantity = itemView.findViewById(R.id.tvQuantity);
                 tvPrice = itemView.findViewById(R.id.tvPrice);
                 btnEdit = itemView.findViewById(R.id.btnEdit);
-                btnDelete = itemView.findViewById(R.id.btnDelete);
+                btnArchive = itemView.findViewById(R.id.btnArchive);
+            }
+        }
+    }
+
+    // Archived Items Adapter for the dialog
+    private class ArchivedAdapter extends RecyclerView.Adapter<ArchivedAdapter.ViewHolder> {
+        private List<InventoryItem> archivedItems;
+
+        ArchivedAdapter(List<InventoryItem> archivedItems) {
+            this.archivedItems = archivedItems;
+        }
+
+        @Override
+        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(R.layout.item_archived_inventory, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(ViewHolder holder, int position) {
+            InventoryItem item = archivedItems.get(position);
+
+            holder.tvProductName.setText(item.productName);
+            holder.tvQuantity.setText(String.valueOf(item.quantity));
+            holder.tvPrice.setText(String.format("₱%.2f", item.price));
+
+            holder.btnUnarchive.setOnClickListener(v -> {
+                unarchiveItem(item.id);
+                archivedItems.remove(position);
+                notifyItemRemoved(position);
+                notifyItemRangeChanged(position, archivedItems.size());
+            });
+        }
+
+        @Override
+        public int getItemCount() {
+            return archivedItems.size();
+        }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            TextView tvProductName, tvQuantity, tvPrice;
+            MaterialButton btnUnarchive;
+
+            ViewHolder(View itemView) {
+                super(itemView);
+                tvProductName = itemView.findViewById(R.id.tvProductName);
+                tvQuantity = itemView.findViewById(R.id.tvQuantity);
+                tvPrice = itemView.findViewById(R.id.tvPrice);
+                btnUnarchive = itemView.findViewById(R.id.btnUnarchive);
             }
         }
     }
