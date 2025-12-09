@@ -14,38 +14,88 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.CoffeeCompanion"
         tools:targetApi="31">
-
+        <activity
+            android:name=".InventoryManagementActivity"
+            android:exported="false" />
         <!-- ADD THIS LINE -->
         <meta-data
             android:name="firebase_database_url"
             android:value="https://coffee-companion-e3c06-default-rtdb.firebaseio.com/" />
-
-        <!-- Your existing activities -->
-        <activity android:name=".OrderDetailsActivity" android:exported="false" />
-        <activity android:name=".OrderSuccessActivity" android:exported="false" />
-        <activity android:name=".CoffeePicksActivity" android:exported="false" />
-        <activity android:name=".CheckoutActivity" android:exported="false" />
-        <activity android:name=".ChooseAddressActivity" android:exported="false" />
-        <activity android:name=".EditItemCartActivity" android:exported="false" />
-        <activity android:name=".CartActivity" android:exported="false" />
-        <activity android:name=".ItemActivity" android:exported="false" />
-        <activity android:name=".EditAddressActivity" android:exported="false" />
-        <activity android:name=".AddAddressActivity" android:exported="false" />
-        <activity android:name=".ShopMenuActivity" android:exported="false" />
-        <activity android:name=".AddressListActivity" android:exported="false" />
-        <activity android:name=".ChangeEmailActivity" android:exported="false" />
-        <activity android:name=".InitializeUserDetailsActivity" android:exported="false" />
-        <activity android:name=".InitializeAccountActivity" android:exported="false" />
-        <activity android:name=".admin.ManageUsersActivity" android:exported="false" android:label="Manage Users" />
-        <activity android:name=".AdminDashboardActivity" android:exported="false" android:label="Admin Dashboard" />
-        <activity android:name=".UserDashboardActivity" android:exported="false" />
-        <activity android:name=".RegisterActivity" android:exported="false" />
-        <activity android:name=".LoginActivity" android:exported="false" />
-        <activity android:name=".PaymentProofActivity" android:label="Payment Proofs" />
-        <activity android:name=".PaymentProofViewerActivity" android:label="Payment Proof Viewer" />
+        <meta-data
+            android:name="firebase_database_url"
+            android:value="https://coffee-companion-e3c06-default-rtdb.firebaseio.com/" /> <!-- Your existing activities -->
+        <activity
+            android:name=".OrderDetailsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".OrderSuccessActivity"
+            android:exported="false" />
+        <activity
+            android:name=".CoffeePicksActivity"
+            android:exported="false" />
+        <activity
+            android:name=".CheckoutActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ChooseAddressActivity"
+            android:exported="false" />
+        <activity
+            android:name=".EditItemCartActivity"
+            android:exported="false" />
+        <activity
+            android:name=".CartActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ItemActivity"
+            android:exported="false" />
+        <activity
+            android:name=".EditAddressActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AddAddressActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ShopMenuActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AddressListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ChangeEmailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".InitializeUserDetailsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".InitializeAccountActivity"
+            android:exported="false" />
+        <activity
+            android:name=".admin.ManageUsersActivity"
+            android:exported="false"
+            android:label="Manage Users" />
+        <activity
+            android:name=".AdminDashboardActivity"
+            android:exported="false"
+            android:label="Admin Dashboard" />
+        <activity
+            android:name=".UserDashboardActivity"
+            android:exported="false" />
+        <activity
+            android:name=".RegisterActivity"
+            android:exported="false" />
+        <activity
+            android:name=".LoginActivity"
+            android:exported="false" />
+        <activity
+            android:name=".PaymentProofActivity"
+            android:label="Payment Proofs" />
+        <activity
+            android:name=".PaymentProofViewerActivity"
+            android:label="Payment Proof Viewer" />
         <activity android:name=".AdminPaymentsActivity" />
         <activity android:name=".AdminAddCodPaymentActivity" />
-        <activity android:name=".ViewAllPaymentsActivity"
+        <activity
+            android:name=".ViewAllPaymentsActivity"
             android:exported="false" />
         <activity android:name=".ViewReceiptActivity" />
         <activity android:name=".OrdersActivity" />
@@ -59,19 +109,15 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".AdminDashboardActivity" />
         </activity>
-
         <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-
-        <meta-data
-            android:name="firebase_database_url"
-            android:value="https://coffee-companion-e3c06-default-rtdb.firebaseio.com/" />
     </application>
+
 </manifest>
